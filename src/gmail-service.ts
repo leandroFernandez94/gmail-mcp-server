@@ -1,6 +1,7 @@
 import { google, gmail_v1 } from "googleapis";
 import { OAuth2Client } from "google-auth-library";
 import { readFileSync } from "fs";
+import { get } from "http";
 
 export interface EmailFilter {
   senderEmail?: string;
@@ -82,24 +83,28 @@ function buildQuery(filter: EmailFilter): string {
   return queryParts.join(" ");
 }
 
+const getHeader = (
+  headers: gmail_v1.Schema$MessagePartHeader[],
+  name: string
+) =>
+  headers.find((h) => h.name?.toLowerCase() === name.toLowerCase())?.value ||
+  "";
+
 async function getMessageDetails(
   gmail: gmail_v1.Gmail,
   messageId: string
 ): Promise<EmailMessage | null> {
   try {
-    const response = await gmail.users.messages.get({
+    const messageData = await gmail.users.messages.get({
       userId: "me",
       id: messageId,
       format: "full",
     });
 
-    const message = response.data;
+    const message = messageData.data;
     if (!message) return null;
 
     const headers = message.payload?.headers || [];
-    const getHeader = (name: string) =>
-      headers.find((h) => h.name?.toLowerCase() === name.toLowerCase())
-        ?.value || "";
 
     // Extract email body
     let body = "";
@@ -119,7 +124,7 @@ async function getMessageDetails(
     }
 
     // Parse recipients
-    const toHeader = getHeader("to");
+    const toHeader = getHeader(headers, "to");
     const to = toHeader ? toHeader.split(",").map((addr) => addr.trim()) : [];
 
     // Check if message is unread
@@ -129,12 +134,12 @@ async function getMessageDetails(
     return {
       id: message.id || "",
       threadId: message.threadId || "",
-      subject: getHeader("subject"),
-      from: getHeader("from"),
+      subject: getHeader(headers, "subject"),
+      from: getHeader(headers, "from"),
       to,
-      date: getHeader("date"),
+      date: getHeader(headers, "date"),
       snippet: message.snippet || "",
-      body: body.substring(0, 1000), // Limit body to first 1000 characters
+      body,
       isUnread,
       labels,
     };
