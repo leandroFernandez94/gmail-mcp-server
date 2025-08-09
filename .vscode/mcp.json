@@ -1,0 +1,9 @@
+{
+  "servers": {
+    "gmail-mcp-server": {
+      "type": "stdio",
+      "command": "npx",
+      "args": ["tsx", "watch", "src/index.ts"]
+    }
+  }
+}
