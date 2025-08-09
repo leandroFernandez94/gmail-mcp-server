@@ -6,8 +6,9 @@ import { writeFileSync, readFileSync } from "fs";
 import { createInterface } from "readline";
 
 const SCOPES = ["https://www.googleapis.com/auth/gmail.readonly"];
-const TOKEN_PATH = "token.json";
-const CREDENTIALS_PATH = "credentials.json";
+const TOKEN_PATH = process.env.GMAIL_TOKEN_PATH || "token.json";
+const CREDENTIALS_PATH =
+  process.env.GMAIL_CREDENTIALS_PATH || "credentials.json";
 
 interface Credentials {
   web?: {
