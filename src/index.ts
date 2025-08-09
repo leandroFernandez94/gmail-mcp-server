@@ -26,6 +26,13 @@ const ReadEmailsSchema = z.object({
     .optional()
     .default(10)
     .describe("Maximum number of emails to return (1-100)"),
+  includeBody: z
+    .boolean()
+    .optional()
+    .default(false)
+    .describe(
+      "If true, include the email body in the response. If false, omit the body."
+    ),
 });
 
 async function createGmailMcpServer() {
@@ -43,7 +50,7 @@ async function createGmailMcpServer() {
     {
       title: "Read Gmail Emails",
       description:
-        "Read emails from Gmail with optional filtering by sender and read status",
+        "Read emails from Gmail with optional filtering by sender, read status, and option to include the email body.",
       inputSchema: {
         senderEmail: z
           .string()
@@ -64,6 +71,13 @@ async function createGmailMcpServer() {
           .optional()
           .default(10)
           .describe("Maximum number of emails to return (1-100)"),
+        includeBody: z
+          .boolean()
+          .optional()
+          .default(false)
+          .describe(
+            "If true, include the email body in the response. If false, omit the body."
+          ),
       },
     },
     async (args) => {

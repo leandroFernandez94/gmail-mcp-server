@@ -7,6 +7,7 @@ export interface EmailFilter {
   senderEmail?: string;
   onlyUnread?: boolean;
   maxResults?: number;
+  includeBody?: boolean;
 }
 
 export interface EmailMessage {
@@ -92,7 +93,8 @@ const getHeader = (
 
 async function getMessageDetails(
   gmail: gmail_v1.Gmail,
-  messageId: string
+  messageId: string,
+  includeBody: boolean
 ): Promise<EmailMessage | null> {
   try {
     const messageData = await gmail.users.messages.get({
@@ -108,19 +110,21 @@ async function getMessageDetails(
 
     // Extract email body
     let body = "";
-    if (message.payload?.parts) {
-      // Multi-part message
-      for (const part of message.payload.parts) {
-        if (part.mimeType === "text/plain" || part.mimeType === "text/html") {
-          if (part.body?.data) {
-            body = Buffer.from(part.body.data, "base64").toString();
-            break;
+    if (includeBody) {
+      if (message.payload?.parts) {
+        // Multi-part message
+        for (const part of message.payload.parts) {
+          if (part.mimeType === "text/plain" || part.mimeType === "text/html") {
+            if (part.body?.data) {
+              body = Buffer.from(part.body.data, "base64").toString();
+              break;
+            }
           }
         }
+      } else if (message.payload?.body?.data) {
+        // Single part message
+        body = Buffer.from(message.payload.body.data, "base64").toString();
       }
-    } else if (message.payload?.body?.data) {
-      // Single part message
-      body = Buffer.from(message.payload.body.data, "base64").toString();
     }
 
     // Parse recipients
@@ -172,7 +176,9 @@ async function getEmails(
 
     // Get detailed information for each message
     const emailPromises = messages.map((msg) =>
-      msg.id ? getMessageDetails(gmail, msg.id) : Promise.resolve(null)
+      msg.id
+        ? getMessageDetails(gmail, msg.id, (filter.includeBody = false))
+        : Promise.resolve(null)
     );
 
     const emails = await Promise.all(emailPromises);
